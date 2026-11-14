@@ -20,6 +20,7 @@ import {
   Mic,
   Search,
   X,
+  ArrowRight,
 } from 'lucide-react';
 import {
   AiIntentResult,
@@ -40,6 +41,7 @@ import { ProjectWorkspaceModal } from './components/ProjectWorkspaceModal';
 import { SettingsDrawer } from './components/SettingsDrawer';
 import { ExitConfirmModal } from './components/ExitConfirmModal';
 import { AiChatMessage, AiCopilotDialog } from './components/AiCopilotWidget';
+import { SplashScreen } from './components/SplashScreen';
 
 const STORAGE_PROJECTS_KEY = 'cf_gis_projects_v2';
 const STORAGE_PREFS_KEY = 'cf_gis_prefs_v2';
@@ -151,6 +153,12 @@ export default function App() {
   const [globeResetSignal, setGlobeResetSignal] = useState(0);
   const [now, setNow] = useState<Date>(() => new Date());
 
+  // Launch Splash Screen state
+  const [isSplashVisible, setIsSplashVisible] = useState(true);
+  const [isSplashExiting, setIsSplashExiting] = useState(false);
+  const [splashSessionKey, setSplashSessionKey] = useState(0);
+  const [homeEnterKey, setHomeEnterKey] = useState(0);
+
   // Modals & menus state
   const [isNewModalOpen, setIsNewModalOpen] = useState(false);
   const [newProjectPrefill, setNewProjectPrefill] = useState<CreateProjectPrefill | null>(null);
@@ -181,6 +189,8 @@ export default function App() {
   const projectsSectionRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const splashAutoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const splashExitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     try {
@@ -207,6 +217,62 @@ export default function App() {
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
+  }, []);
+
+  const handleDismissSplash = () => {
+    if (!isSplashVisible || isSplashExiting) return;
+    if (splashAutoTimerRef.current) {
+      clearTimeout(splashAutoTimerRef.current);
+      splashAutoTimerRef.current = null;
+    }
+    setIsSplashExiting(true);
+    setHomeEnterKey((k) => k + 1);
+    setGlobeResetSignal((n) => n + 1);
+    splashExitTimerRef.current = setTimeout(() => {
+      setIsSplashVisible(false);
+      setIsSplashExiting(false);
+    }, 460);
+  };
+
+  const handleReplaySplash = () => {
+    if (splashAutoTimerRef.current) {
+      clearTimeout(splashAutoTimerRef.current);
+      splashAutoTimerRef.current = null;
+    }
+    if (splashExitTimerRef.current) {
+      clearTimeout(splashExitTimerRef.current);
+      splashExitTimerRef.current = null;
+    }
+    setIsSplashExiting(false);
+    setSplashSessionKey((k) => k + 1);
+    setIsSplashVisible(true);
+  };
+
+  useEffect(() => {
+    if (!isSplashVisible) return;
+    splashAutoTimerRef.current = setTimeout(() => {
+      setIsSplashExiting(true);
+      setHomeEnterKey((k) => k + 1);
+      setGlobeResetSignal((n) => n + 1);
+      splashExitTimerRef.current = setTimeout(() => {
+        setIsSplashVisible(false);
+        setIsSplashExiting(false);
+      }, 460);
+    }, 3400);
+
+    return () => {
+      if (splashAutoTimerRef.current) {
+        clearTimeout(splashAutoTimerRef.current);
+        splashAutoTimerRef.current = null;
+      }
+    };
+  }, [isSplashVisible, splashSessionKey]);
+
+  useEffect(() => {
+    return () => {
+      if (splashAutoTimerRef.current) clearTimeout(splashAutoTimerRef.current);
+      if (splashExitTimerRef.current) clearTimeout(splashExitTimerRef.current);
+    };
   }, []);
 
   const showToast = (message: string, undoProject?: { project: GisProject; index: number }) => {
@@ -484,10 +550,18 @@ export default function App() {
 
   const shellWidthClass =
     viewportMode === 'phone'
-      ? 'w-full min-h-[calc(100vh-48px)] sm:min-h-[820px] sm:max-w-[412px] sm:my-5 sm:rounded-[42px] sm:border-[8px] sm:border-[#141918] sm:ring-1 sm:ring-black/10 sm:shadow-[0_32px_80px_-20px_rgba(10,18,28,0.32)] overflow-hidden'
+      ? `w-full ${
+          isSplashVisible
+            ? 'h-[calc(100dvh-48px)] sm:h-[min(820px,calc(100dvh-88px))]'
+            : 'min-h-[calc(100vh-48px)] sm:min-h-[820px]'
+        } sm:max-w-[412px] sm:my-5 sm:rounded-[42px] sm:border-[8px] sm:border-[#141918] sm:ring-1 sm:ring-black/10 sm:shadow-[0_32px_80px_-20px_rgba(10,18,28,0.32)] overflow-hidden`
       : viewportMode === 'tablet'
-      ? 'w-full min-h-[calc(100vh-48px)] sm:min-h-[780px] sm:max-w-[768px] sm:my-5 sm:rounded-[32px] sm:border-[8px] sm:border-[#141918] sm:ring-1 sm:ring-black/10 sm:shadow-[0_32px_80px_-20px_rgba(10,18,28,0.26)] overflow-hidden'
-      : 'w-full min-h-[calc(100vh-48px)]';
+      ? `w-full ${
+          isSplashVisible
+            ? 'h-[calc(100dvh-48px)] sm:h-[min(780px,calc(100dvh-88px))]'
+            : 'min-h-[calc(100vh-48px)] sm:min-h-[780px]'
+        } sm:max-w-[768px] sm:my-5 sm:rounded-[32px] sm:border-[8px] sm:border-[#141918] sm:ring-1 sm:ring-black/10 sm:shadow-[0_32px_80px_-20px_rgba(10,18,28,0.26)] overflow-hidden`
+      : `w-full ${isSplashVisible ? 'h-[calc(100dvh-48px)] overflow-hidden' : 'min-h-[calc(100vh-48px)]'}`;
 
   const isMultiColumn = viewportMode !== 'phone';
 
@@ -558,9 +632,24 @@ export default function App() {
             </button>
           </div>
 
-          {/* Zone 3: Quiet focused survey badge */}
-          <div className="hidden sm:block max-w-[180px] truncate text-right text-[11px] font-medium text-[#5a6962]">
-            {activeProject.name}
+          {/* Zone 3: Splash replay trigger & quiet focused survey badge */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => (isSplashVisible ? handleDismissSplash() : handleReplaySplash())}
+              className="inline-flex min-h-[32px] items-center gap-1 rounded-lg border border-black/[0.06] bg-[#f1f4f2] px-2.5 text-[11px] font-semibold text-[#167248] whitespace-nowrap transition-all hover:bg-[#e5efe9] active:scale-95"
+              title={isSplashVisible ? '跳过启动页进入首页' : '重播移动端启动页'}
+            >
+              {isSplashVisible ? (
+                <ArrowRight className="h-3 w-3" />
+              ) : (
+                <RotateCcw className="h-3 w-3" />
+              )}
+              <span>{isSplashVisible ? '进入首页' : '启动页'}</span>
+            </button>
+            <div className="hidden md:block max-w-[150px] truncate text-right text-[11px] font-medium text-[#5a6962]">
+              {activeProject.name}
+            </div>
           </div>
         </div>
       </nav>
@@ -568,8 +657,22 @@ export default function App() {
       {/* Main Responsive Canvas / Preview Shell */}
       <main
         id="top"
-        className={`@container bg-[#f5f7f6] transition-all duration-300 ease-out ${shellWidthClass}`}
+        className={`@container relative bg-[#f5f7f6] transition-all duration-300 ease-out ${shellWidthClass}`}
       >
+        {isSplashVisible && (
+          <SplashScreen
+            key={splashSessionKey}
+            atmosphere={resolvedAtmosphere}
+            viewportMode={viewportMode}
+            timeLabel={timeLabel}
+            dateLabel={dateLabel}
+            activeProjectName={activeProject.name}
+            launchLastOnStart={preferences.launchLastOnStart}
+            isExiting={isSplashExiting}
+            onEnter={handleDismissSplash}
+          />
+        )}
+
         {/* Flagship Orbital Hero: Time-Adaptive Sky/Space Backdrop + Unobstructed 3D Earth + Unified Glass Dock */}
         <header
           className="relative overflow-hidden transition-[background-image] duration-700"
@@ -760,7 +863,10 @@ export default function App() {
             {/* Middle Orbital Stage: Clean Editorial Left Column + Unobstructed Enlarged 3D Earth */}
             <div className="relative mt-1.5">
               {/* Unobstructed Enlarged 3D Earth bleeding subtly off the right edge */}
-              <div className="pointer-events-auto absolute top-0 -right-7 z-10 @[560px]:-top-2 @[560px]:right-0">
+              <div
+                key={`globe-entrance-${homeEnterKey}`}
+                className="pointer-events-auto absolute top-0 -right-7 z-10 @[560px]:-top-2 @[560px]:right-0"
+              >
                 <InteractiveGlobe
                   projects={projects}
                   activeProject={activeProject}
@@ -1411,6 +1517,7 @@ export default function App() {
         onCancel={() => setIsExitOpen(false)}
         onConfirmExit={() => {
           setIsExitOpen(false);
+          handleReplaySplash();
           showToast('已安全保存全部离线缓存与工程索引');
         }}
       />

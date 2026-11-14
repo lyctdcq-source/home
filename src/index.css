@@ -144,6 +144,35 @@
   }
 }
 
+@keyframes splashHeroIn {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes splashOrbitSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes splashProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
 .ai-dialog-pop {
   transform-origin: bottom center;
   animation: aiDialogPop 260ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -158,6 +187,22 @@
   transform-origin: center center;
   will-change: transform, opacity;
   animation: globeEntrance 860ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.splash-hero-in {
+  will-change: transform, opacity;
+  animation: splashHeroIn 680ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.splash-orbit-slow {
+  will-change: transform;
+  animation: splashOrbitSlow 34s linear infinite;
+}
+
+.splash-progress-fill {
+  transform-origin: left center;
+  will-change: transform;
+  animation: splashProgress 3400ms linear forwards;
 }
 
 .ai-wave-bar {
@@ -180,6 +225,9 @@
   .ai-dialog-pop,
   .modal-sheet-pop,
   .globe-entrance,
+  .splash-hero-in,
+  .splash-orbit-slow,
+  .splash-progress-fill,
   .ai-wave-bar,
   .ai-robot-eye,
   .ai-summon-wave {
